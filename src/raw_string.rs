@@ -96,11 +96,34 @@ impl RawJavaString {
     }
 
     /// Builds a new string from raw bytes.
-    pub fn from_bytes(bytes: &[u8]) -> Self {
-        let mut new = Self::new();
-        let len = bytes.len();
+    ///
+    /// Complexity is O(n) in the length of `bytes`.
+    pub fn from_bytes(bytes: impl Deref<Target = [u8]>) -> Self {
+        let bytes_list: &[_] = &[bytes];
+        Self::from_bytes_array_inline(bytes_list)
+    }
 
-        let (write_location, data_pointer_value) = if len <= Self::max_intern_len() {
+    /// Builds a new string from raw bytes.
+    ///
+    /// Complexity is O(n) in the sum of the lengths of the elements of `bytes`.
+    pub fn from_bytes_array(bytes_list: impl Deref<Target = [impl Deref<Target = [u8]>]>) -> Self {
+        Self::from_bytes_array_inline(bytes_list)
+    }
+
+    /// Builds a new string from raw bytes.
+    ///
+    /// Complexity is O(n) in the sum of the lengths of the elements of `bytes`.
+    #[inline(always)]
+    fn from_bytes_array_inline(
+        bytes_list: impl Deref<Target = [impl Deref<Target = [u8]>]>,
+    ) -> Self {
+        let mut new = Self::new();
+        let len = bytes_list
+            .iter()
+            .map(|bytes| bytes.len())
+            .fold(0, |sum, len| sum + len);
+
+        let (mut write_location, data_pointer_value) = if len <= Self::max_intern_len() {
             let pointer_value = (len << 1) + 1;
             (
                 (&mut new.len) as *mut usize as *mut u8,
@@ -108,6 +131,7 @@ impl RawJavaString {
             )
         } else {
             use alloc::alloc::*;
+            // TODO use safe version and put this version behind flag
             let ptr = unsafe { alloc(Layout::from_size_align_unchecked(len, 2)) };
             new.len = len;
             (ptr, ptr)
@@ -115,16 +139,23 @@ impl RawJavaString {
 
         unsafe {
             new.write_ptr_unchecked(data_pointer_value);
-            // new.data = NonNull::new_unchecked(data_pointer_value);
-            core::ptr::copy_nonoverlapping(bytes.as_ptr(), write_location, len);
+        }
+
+        for bytes in bytes_list.iter() {
+            unsafe {
+                core::ptr::copy_nonoverlapping(bytes.as_ptr(), write_location, len);
+                write_location = write_location.add(len);
+            }
         }
 
         new
     }
 
     /// Overwrites what was previously in this buffer with the contents of bytes.
+    ///
+    /// Complexity is O(n) in the length of `bytes`.
     #[inline(always)]
-    pub fn set_bytes(&mut self, bytes: &[u8]) {
+    pub fn set_bytes(&mut self, bytes: impl Deref<Target = [u8]>) {
         *self = Self::from_bytes(bytes);
     }
 }
@@ -201,36 +232,77 @@ mod tests {
 
     #[test]
     fn from_bytes() {
-        let bytes = vec![12, 3, 2, 1];
-        let string = RawJavaString::from_bytes(&bytes);
+        let bytes: &[u8] = &[12, 3, 2, 1];
+        let string = RawJavaString::from_bytes(bytes);
         assert!(string.is_interned(), "String should be interned but isn't.");
 
-        assert!(bytes == string.get_bytes(), "Ooooof {:?}", string);
+        assert!(
+            bytes == string.get_bytes(),
+            "String should have value `{:?}`, but instead has value `{:?}`",
+            bytes,
+            string
+        );
     }
 
     #[test]
     fn from_bytes_large_with_nulls() {
         let bytes: &[u8] = &[0; 127];
 
-        let string = RawJavaString::from_bytes(&bytes);
+        let string = RawJavaString::from_bytes(bytes);
         assert!(
             !string.is_interned(),
             "String shouldn't be interned but is."
         );
 
-        assert!(bytes == string.get_bytes(), "Ooooof {:?}", string);
+        assert!(
+            bytes == string.get_bytes(),
+            "String should have value `{:?}`, but instead has value `{:?}`",
+            bytes,
+            string
+        );
+    }
+
+    #[test]
+    fn large_interned() {
+        let bytes: &[u8] = &[0; RawJavaString::max_intern_len()];
+        let bytes_2: &[u8] = &[1; RawJavaString::max_intern_len()];
+
+        let mut string = RawJavaString::from_bytes(bytes);
+        assert!(string.is_interned(), "String should be interned but isn't.");
+
+        assert!(
+            bytes == string.get_bytes(),
+            "String should have value `{:?}`, but instead has value `{:?}`",
+            bytes,
+            string
+        );
+
+        string.set_bytes(bytes_2);
+        assert!(string.is_interned(), "String should be interned but isn't.");
+
+        assert!(
+            bytes_2 == string.get_bytes(),
+            "String should have value `{:?}`, but instead has value `{:?}`",
+            bytes,
+            string
+        );
     }
 
     #[test]
     fn from_bytes_large() {
         let bytes: &[u8] = &[1; 255];
 
-        let string = RawJavaString::from_bytes(&bytes);
+        let string = RawJavaString::from_bytes(bytes);
         assert!(
             !string.is_interned(),
             "String shouldn't be interned but is."
         );
 
-        assert!(bytes == string.get_bytes(), "Ooooof {:?}", string);
+        assert!(
+            bytes == string.get_bytes(),
+            "String should have value `{:?}`, but instead has value `{:?}`",
+            bytes,
+            string
+        );
     }
 }
