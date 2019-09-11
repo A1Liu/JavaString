@@ -1,6 +1,6 @@
 # jstring
 
-## JString
+## JavaString
 The JavaString uses short string optimizations and a lack of a "capacity"
 field to reduce struct size and heap fragmentation in certain cases.
 
@@ -24,3 +24,5 @@ Here's how it works:
    bitshift right.
 5. When interning, we have `std::mem::size_of::<usize>() * 2 - 1` bytes of space.
    On x64, this is 15 bytes, and on 32-bit architectures, this is 7 bytes.
+
+License: MIT

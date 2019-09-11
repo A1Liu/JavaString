@@ -1,5 +1,5 @@
 /*!
-# JString
+# JavaString
 The JavaString uses short string optimizations and a lack of a "capacity"
 field to reduce struct size and heap fragmentation in certain cases.
 
