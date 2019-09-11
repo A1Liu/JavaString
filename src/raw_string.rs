@@ -117,7 +117,7 @@ impl RawJavaString {
     }
 
     #[inline(always)]
-    pub fn write_bytes(&mut self, bytes: &[u8]) {
+    pub fn set_bytes(&mut self, bytes: &[u8]) {
         *self = Self::from_bytes(bytes);
     }
 }
@@ -158,5 +158,36 @@ impl Deref for RawJavaString {
 impl DerefMut for RawJavaString {
     fn deref_mut(&mut self) -> &mut [u8] {
         self.get_bytes_mut()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+
+    use super::*;
+
+    #[test]
+    fn new_does_not_use_heap() {
+        let string = RawJavaString::new();
+        assert!(
+            string.is_interned(),
+            "Size of Option<JavaString> is incorrect!"
+        );
+    }
+
+    #[test]
+    fn option_size() {
+        assert!(
+            mem::size_of::<Option<RawJavaString>>() == 2 * mem::size_of::<usize>(),
+            "Size of Option<JavaString> is incorrect!"
+        );
+    }
+
+    #[test]
+    fn size() {
+        assert!(
+            mem::size_of::<RawJavaString>() == 2 * mem::size_of::<usize>(),
+            "Size of JavaString is incorrect!"
+        );
     }
 }
