@@ -28,7 +28,7 @@ impl RawJavaString {
     /// Returns whether or not this string is interned.
     #[inline(always)]
     pub fn is_interned(&self) -> bool {
-        self.data.as_ptr() as usize % 2 == 1 // Check if the pointer value is even
+        ((self.read_ptr() as usize) % 2) == 1 // Check if the pointer value is even
     }
 
     #[inline(always)]
@@ -69,12 +69,14 @@ impl RawJavaString {
     }
 
     pub fn get_bytes(&self) -> &[u8] {
+        #[cfg(test)]
+        println!("Calling get_bytes");
         let (ptr, len) = if self.is_interned() {
-            let len = (self.read_ptr() as usize as u8 >> 1) as usize;
+            let len = ((self.read_ptr() as usize as u8) >> 1) as usize;
             let ptr = (&self.len) as *const usize as *const u8 as *mut u8;
             (ptr, len)
         } else {
-            (self.data.as_ptr(), self.len)
+            (self.read_ptr(), self.len)
         };
 
         unsafe { slice::from_raw_parts(ptr, len) }
@@ -89,7 +91,7 @@ impl RawJavaString {
     pub const fn new() -> Self {
         Self {
             len: 0,
-            data: unsafe { NonNull::new_unchecked(1 as *mut u8) },
+            data: unsafe { NonNull::new_unchecked(usize::to_be(1) as *mut u8) },
         }
     }
 
@@ -99,18 +101,21 @@ impl RawJavaString {
         let len = bytes.len();
 
         let (write_location, data_pointer_value) = if len <= Self::max_intern_len() {
+            let pointer_value = (len << 1) + 1;
             (
-                &mut new.len as *mut usize as *mut u8,
-                len as usize as *mut u8,
+                (&mut new.len) as *mut usize as *mut u8,
+                (pointer_value as usize as *mut u8),
             )
         } else {
             use alloc::alloc::*;
             let ptr = unsafe { alloc(Layout::from_size_align_unchecked(len, 2)) };
+            new.len = len;
             (ptr, ptr)
         };
 
         unsafe {
-            new.data = NonNull::new_unchecked(data_pointer_value);
+            new.write_ptr_unchecked(data_pointer_value);
+            // new.data = NonNull::new_unchecked(data_pointer_value);
             core::ptr::copy_nonoverlapping(bytes.as_ptr(), write_location, len);
         }
 
@@ -126,11 +131,15 @@ impl RawJavaString {
 
 impl Drop for RawJavaString {
     fn drop(&mut self) {
+        #[cfg(test)]
+        println!("Dropping");
         if !self.is_interned() {
-            use alloc::alloc::*;
+            #[cfg(test)]
+            println!("Dropping non-interned string");
+            use alloc::alloc::{dealloc, Layout};
             unsafe {
                 dealloc(
-                    self.data.as_ptr(),
+                    self.read_ptr(),
                     Layout::from_size_align_unchecked(self.len(), 2),
                 );
             }
@@ -171,10 +180,7 @@ mod tests {
     #[test]
     fn new_does_not_use_heap() {
         let string = RawJavaString::new();
-        assert!(
-            string.is_interned(),
-            "Size of Option<JavaString> is incorrect!"
-        );
+        assert!(string.is_interned(), "Empty RawJavaString isn't interned!");
     }
 
     #[test]
@@ -191,5 +197,40 @@ mod tests {
             mem::size_of::<RawJavaString>() == 2 * mem::size_of::<usize>(),
             "Size of JavaString is incorrect!"
         );
+    }
+
+    #[test]
+    fn from_bytes() {
+        let bytes = vec![12, 3, 2, 1];
+        let string = RawJavaString::from_bytes(&bytes);
+        assert!(string.is_interned(), "String should be interned but isn't.");
+
+        assert!(bytes == string.get_bytes(), "Ooooof {:?}", string);
+    }
+
+    #[test]
+    fn from_bytes_large_with_nulls() {
+        let bytes: &[u8] = &[0; 127];
+
+        let string = RawJavaString::from_bytes(&bytes);
+        assert!(
+            !string.is_interned(),
+            "String shouldn't be interned but is."
+        );
+
+        assert!(bytes == string.get_bytes(), "Ooooof {:?}", string);
+    }
+
+    #[test]
+    fn from_bytes_large() {
+        let bytes: &[u8] = &[1; 255];
+
+        let string = RawJavaString::from_bytes(&bytes);
+        assert!(
+            !string.is_interned(),
+            "String shouldn't be interned but is."
+        );
+
+        assert!(bytes == string.get_bytes(), "Ooooof {:?}", string);
     }
 }

@@ -15,7 +15,7 @@
 //!    On x64, this is 15 bytes, and on 32-bit architectures, this is 7 bytes.
 
 #![allow(dead_code)]
-#![cfg_attr(not(test), no_std)]
+// #![cfg_attr(not(any(test, docs)), no_std)]
 
 extern crate alloc;
 
