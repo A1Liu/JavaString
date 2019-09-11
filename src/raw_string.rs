@@ -13,6 +13,7 @@ use core::slice;
 /// 1. Internal pointer is always big endian if valid
 /// 2. `data` is only a valid pointer if its big-endian representation is aligned
 ///    to 2 bytes.
+#[repr(C)]
 pub struct RawJavaString {
     len: usize,
     data: NonNull<u8>,
@@ -179,6 +180,7 @@ impl Drop for RawJavaString {
 }
 
 impl Clone for RawJavaString {
+    #[inline(always)]
     fn clone(&self) -> Self {
         Self::from_bytes(self.get_bytes())
     }
@@ -192,12 +194,14 @@ impl fmt::Debug for RawJavaString {
 
 impl Deref for RawJavaString {
     type Target = [u8];
+    #[inline(always)]
     fn deref(&self) -> &[u8] {
         self.get_bytes()
     }
 }
 
 impl DerefMut for RawJavaString {
+    #[inline(always)]
     fn deref_mut(&mut self) -> &mut [u8] {
         self.get_bytes_mut()
     }
