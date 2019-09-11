@@ -15,6 +15,7 @@
 //!    On x64, this is 15 bytes, and on 32-bit architectures, this is 7 bytes.
 
 use std::mem;
+use std::ptr::NonNull;
 use std::slice;
 
 /// String whose contents can't be mutated, just like how Java strings work.
@@ -27,17 +28,18 @@ pub struct JavaString {
     len: usize,
     /// Pointer to data. When not aligned to 2 bytes, the entire structure is
     /// used as an inline string, with the last byte used to hold length information.
-    data: *const u8,
+    data: NonNull<u8>,
 }
 
 impl JavaString {
     /// Returns whether or not this string is interned.
     #[inline]
     fn is_interned(&self) -> bool {
-        self.data as usize % 2 == 1 // Check if the pointer value is even
+        self.data.as_ptr() as usize % 2 == 1 // Check if the pointer value is even
     }
 
     /// Returns the maxiumum length of an interned string on the target architecture.
+    #[inline]
     const fn max_intern_len() -> usize {
         mem::size_of::<usize>() * 2 - 1
     }
@@ -45,7 +47,7 @@ impl JavaString {
     /// Returns the length of this string.
     pub fn len(&self) -> usize {
         if self.is_interned() {
-            ((self.data as usize as u8) >> 1) as usize
+            ((self.data.as_ptr() as usize as u8) >> 1) as usize
         } else {
             self.len
         }
@@ -56,7 +58,7 @@ impl JavaString {
         let u8_slice = if len <= Self::max_intern_len() {
             slice::from_raw_parts(&self.len as *const usize as *const u8, len)
         } else {
-            slice::from_raw_parts(self.data, len)
+            slice::from_raw_parts(self.data.as_ptr(), len)
         };
         std::str::from_utf8_unchecked(u8_slice)
     }
@@ -69,7 +71,7 @@ impl JavaString {
     pub const fn new() -> Self {
         Self {
             len: 0,
-            data: 1 as *const u8,
+            data: unsafe { NonNull::new_unchecked(1 as *mut u8) },
         }
     }
 
