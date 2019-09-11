@@ -144,7 +144,7 @@ impl Clone for RawJavaString {
 
 impl fmt::Debug for RawJavaString {
     fn fmt(&self, formatter: &mut fmt::Formatter) -> Result<(), fmt::Error> {
-        write!(formatter, "JavaString {:?}", &self.get_bytes())
+        write!(formatter, "{:?}", &self.get_bytes())
     }
 }
 
