@@ -21,6 +21,7 @@ extern crate alloc;
 
 pub mod raw_string;
 
+use core::ops::{Deref, DerefMut};
 use raw_string::RawJavaString;
 
 /// JavaString uses short string optimizations and a lack of a "capacity" field
@@ -61,9 +62,20 @@ impl JavaString {
     /// ```
     /// let mut s = String::with_capacity(10);
     /// ```
-    pub const fn with_capacity(len: usize) -> Self {
+    pub const fn with_capacity(_len: usize) -> Self {
         Self::new()
     }
 }
 
-impl JavaString {}
+impl Deref for JavaString {
+    type Target = str;
+    fn deref(&self) -> &str {
+        unsafe { std::str::from_utf8_unchecked(self.data.get_bytes()) }
+    }
+}
+
+impl DerefMut for JavaString {
+    fn deref_mut(&mut self) -> &mut str {
+        unsafe { std::str::from_utf8_unchecked_mut(self.data.get_bytes_mut()) }
+    }
+}
