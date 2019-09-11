@@ -31,6 +31,20 @@ pub struct JavaString {
     data: NonNull<u8>,
 }
 
+impl Drop for JavaString {
+    fn drop(&mut self) {
+        if self.len() > Self::max_intern_len() {
+            use std::alloc::*;
+            unsafe {
+                dealloc(
+                    self.data.as_ptr(),
+                    Layout::from_size_align_unchecked(self.len(), 2),
+                );
+            }
+        }
+    }
+}
+
 impl JavaString {
     /// Returns whether or not this string is interned.
     #[inline]
