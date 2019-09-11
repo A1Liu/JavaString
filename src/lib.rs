@@ -53,18 +53,17 @@ impl JavaString {
         }
     }
 
-    pub unsafe fn unsafe_get_str(&self) -> &str {
+    pub unsafe fn unsafe_get_bytes(&self) -> &[u8] {
         let len = self.len();
-        let u8_slice = if len <= Self::max_intern_len() {
+        if len <= Self::max_intern_len() {
             slice::from_raw_parts(&self.len as *const usize as *const u8, len)
         } else {
             slice::from_raw_parts(self.data.as_ptr(), len)
-        };
-        std::str::from_utf8_unchecked(u8_slice)
+        }
     }
 
-    pub unsafe fn unsafe_get_str_mut(&mut self) -> &mut str {
-        &mut *(self.unsafe_get_str() as *const str as *mut str)
+    pub unsafe fn unsafe_get_bytes_mut(&mut self) -> &mut [u8] {
+        &mut *(self.unsafe_get_bytes() as *const [u8] as *mut [u8])
     }
 
     /// Creates a new, empty, JavaString.
@@ -75,9 +74,25 @@ impl JavaString {
         }
     }
 
-    /// Creates a new JavaString from an &str
-    pub fn from_str(_string: &str) -> Self {
-        unimplemented!()
+    pub unsafe fn from_raw_bytes(bytes: &[u8]) -> Self {
+        let len = bytes.len();
+        let mut new = Self::new();
+
+        let (write_location, data_pointer_value) = if len <= Self::max_intern_len() {
+            (
+                &mut new.len as *mut usize as *mut u8,
+                len as usize as *mut u8,
+            )
+        } else {
+            use std::alloc::*;
+            let ptr = alloc(Layout::from_size_align_unchecked(len, 2));
+            (ptr, ptr)
+        };
+
+        new.data = NonNull::new_unchecked(data_pointer_value);
+        std::ptr::copy_nonoverlapping(bytes.as_ptr(), write_location, len);
+
+        new
     }
 }
 
@@ -85,6 +100,14 @@ impl JavaString {
 mod tests {
 
     use super::*;
+
+    #[test]
+    fn option_size() {
+        assert!(
+            mem::size_of::<Option<JavaString>>() == 2 * mem::size_of::<usize>(),
+            "Size of Option<JavaString> is incorrect!"
+        );
+    }
 
     #[test]
     fn size() {
