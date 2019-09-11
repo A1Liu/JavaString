@@ -1,8 +1,8 @@
-use std::fmt;
-use std::mem;
-use std::ops::{Deref, DerefMut};
-use std::ptr::NonNull;
-use std::slice;
+use core::fmt;
+use core::mem;
+use core::ops::{Deref, DerefMut};
+use core::ptr::NonNull;
+use core::slice;
 
 /// String whose contents can't be mutated, just like how Java strings work.
 ///
@@ -60,9 +60,9 @@ impl RawJavaString {
     /// Returns the current memory layout of this object. If None, then we're looking
     /// at an interned string.
     #[inline(always)]
-    fn get_memory_layout(&self) -> Option<core::alloc::Layout> {
+    fn get_memory_layout(&self) -> Option<alloc::alloc::Layout> {
         if self.len() > Self::max_intern_len() {
-            Some(unsafe { core::alloc::Layout::from_size_align_unchecked(self.len(), 2) })
+            Some(unsafe { alloc::alloc::Layout::from_size_align_unchecked(self.len(), 2) })
         } else {
             None
         }
@@ -93,6 +93,7 @@ impl RawJavaString {
         }
     }
 
+    /// Builds a new string from raw bytes.
     pub fn from_bytes(bytes: &[u8]) -> Self {
         let mut new = Self::new();
         let len = bytes.len();
@@ -103,19 +104,20 @@ impl RawJavaString {
                 len as usize as *mut u8,
             )
         } else {
-            use std::alloc::*;
+            use alloc::alloc::*;
             let ptr = unsafe { alloc(Layout::from_size_align_unchecked(len, 2)) };
             (ptr, ptr)
         };
 
         unsafe {
             new.data = NonNull::new_unchecked(data_pointer_value);
-            std::ptr::copy_nonoverlapping(bytes.as_ptr(), write_location, len);
+            core::ptr::copy_nonoverlapping(bytes.as_ptr(), write_location, len);
         }
 
         new
     }
 
+    /// Overwrites what was previously in this buffer with the contents of bytes.
     #[inline(always)]
     pub fn set_bytes(&mut self, bytes: &[u8]) {
         *self = Self::from_bytes(bytes);
@@ -125,7 +127,7 @@ impl RawJavaString {
 impl Drop for RawJavaString {
     fn drop(&mut self) {
         if !self.is_interned() {
-            use std::alloc::*;
+            use alloc::alloc::*;
             unsafe {
                 dealloc(
                     self.data.as_ptr(),

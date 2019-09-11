@@ -13,6 +13,18 @@
 //!    bitshift right.
 //! 5. When interning, we have `std::mem::size_of::<usize>() * 2 - 1` bytes of space.
 //!    On x64, this is 15 bytes, and on 32-bit architectures, this is 7 bytes.
-#![allow(dead_code)]
 
-mod raw_string;
+#![allow(dead_code)]
+#![cfg_attr(not(test), no_std)]
+
+extern crate alloc;
+
+pub mod raw_string;
+
+use raw_string::RawJavaString;
+
+pub struct JavaString {
+    data: RawJavaString,
+}
+
+impl JavaString {}
