@@ -1,5 +1,5 @@
 //! The JavaString uses short string optimizations and a lack of a "capacity"
-//! field to reduce size and heap allocations in certain cases.
+//! field to reduce struct size and heap fragmentation in certain cases.
 //!
 //! Here's how it works:
 //! 1. We store `len`, the length of the string, and `data`, the pointer to the
@@ -23,8 +23,47 @@ pub mod raw_string;
 
 use raw_string::RawJavaString;
 
+/// JavaString uses short string optimizations and a lack of a "capacity" field
+/// to reduce struct size and heap fragmentation in certain cases.
+///
+/// It allows for mutation, but not for growth without reallocation.
 pub struct JavaString {
     data: RawJavaString,
+}
+
+impl JavaString {
+    /// Creates a new empty `JavaString`.
+    ///
+    /// Given that the `JavaString` is empty, this will not allocate any initial
+    /// buffer.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use java_string::*;
+    /// let s = JavaString::new();
+    /// ```
+    pub const fn new() -> Self {
+        Self {
+            data: RawJavaString::new(),
+        }
+    }
+
+    /// Creates a new empty `JavaString`. Included for API compatibility with standard
+    /// `String` implementation.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// let mut s = String::with_capacity(10);
+    /// ```
+    pub const fn with_capacity(len: usize) -> Self {
+        Self::new()
+    }
 }
 
 impl JavaString {}
