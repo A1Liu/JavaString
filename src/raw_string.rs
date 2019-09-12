@@ -97,6 +97,18 @@ impl RawJavaString {
         }
     }
 
+    pub fn from_byte_vec(mut bytes: Vec<u8>) -> Self {
+        if bytes.len() <= Self::max_intern_len() {
+            Self::from_bytes(bytes)
+        } else {
+            let mut new = Self::new();
+            new.len = bytes.len();
+            new.write_ptr(bytes.as_mut_ptr());
+            core::mem::forget(bytes);
+            new
+        }
+    }
+
     /// Builds a new string from raw bytes.
     ///
     /// Complexity is O(n) in the length of `bytes`.

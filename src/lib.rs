@@ -29,6 +29,7 @@ Here's how it works:
 // #![cfg_attr(not(any(test, docs)), no_std)]
 
 extern crate alloc;
+extern crate serde;
 pub mod raw_string;
 
 use core::fmt;
@@ -172,9 +173,31 @@ impl PartialOrd for JavaString {
         jstr.partial_cmp(rhs)
     }
 }
+
 impl Ord for JavaString {
     fn cmp(&self, rhs: &Self) -> core::cmp::Ordering {
         let jstr: &str = &*self;
         jstr.cmp(rhs)
+    }
+}
+
+impl serde::Serialize for JavaString {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let jstr: &str = &*self;
+        jstr.serialize(serializer)
+    }
+}
+
+impl<'de> serde::Deserialize<'de> for JavaString {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        Ok(Self {
+            data: RawJavaString::from_byte_vec(String::deserialize(deserializer)?.into_bytes()),
+        })
     }
 }
