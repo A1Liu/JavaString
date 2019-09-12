@@ -165,3 +165,16 @@ impl DerefMut for JavaString {
         unsafe { core::str::from_utf8_unchecked_mut(self.data.get_bytes_mut()) }
     }
 }
+
+impl PartialOrd for JavaString {
+    fn partial_cmp(&self, rhs: &Self) -> Option<core::cmp::Ordering> {
+        let jstr: &str = &*self;
+        jstr.partial_cmp(rhs)
+    }
+}
+impl Ord for JavaString {
+    fn cmp(&self, rhs: &Self) -> core::cmp::Ordering {
+        let jstr: &str = &*self;
+        jstr.cmp(rhs)
+    }
+}

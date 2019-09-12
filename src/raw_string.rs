@@ -14,6 +14,7 @@ use core::slice;
 /// 2. `data` is only a valid pointer if its big-endian representation is aligned
 ///    to 2 bytes.
 #[repr(C)]
+#[derive(Eq)]
 pub struct RawJavaString {
     len: usize,
     data: NonNull<u8>,
@@ -212,8 +213,6 @@ impl PartialEq for RawJavaString {
         &*self == &*other
     }
 }
-
-impl Eq for RawJavaString {}
 
 #[cfg(test)]
 mod tests {
