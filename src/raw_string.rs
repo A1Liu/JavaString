@@ -70,9 +70,8 @@ impl RawJavaString {
         }
     }
 
+    /// Returns a reference to the contents of this string as a slice of bytes.
     pub fn get_bytes(&self) -> &[u8] {
-        #[cfg(test)]
-        println!("Calling get_bytes");
         let (ptr, len) = if self.is_interned() {
             let len = ((self.read_ptr() as usize as u8) >> 1) as usize;
             let ptr = (&self.len) as *const usize as *const u8 as *mut u8;
@@ -84,6 +83,7 @@ impl RawJavaString {
         unsafe { slice::from_raw_parts(ptr, len) }
     }
 
+    /// Returns a mutable reference to the contents of this string as a slice of bytes.
     #[inline]
     pub fn get_bytes_mut(&mut self) -> &mut [u8] {
         unsafe { &mut *(self.get_bytes() as *const [u8] as *mut [u8]) }
@@ -97,6 +97,11 @@ impl RawJavaString {
         }
     }
 
+    /// Builds a new string from a vector of bytes.
+    ///
+    /// Doesn't perform any allocations/deallocations; if you hand in a vector
+    /// with more capacity than length, that capacity may be leaked when this
+    /// object is destroyed.
     pub fn from_byte_vec(mut bytes: Vec<u8>) -> Self {
         if bytes.len() <= Self::max_intern_len() {
             Self::from_bytes(bytes)
@@ -176,11 +181,7 @@ impl RawJavaString {
 
 impl Drop for RawJavaString {
     fn drop(&mut self) {
-        #[cfg(test)]
-        println!("Dropping");
         if !self.is_interned() {
-            #[cfg(test)]
-            println!("Dropping non-interned string");
             use alloc::alloc::{dealloc, Layout};
             unsafe {
                 dealloc(
@@ -320,6 +321,21 @@ mod tests {
             !string.is_interned(),
             "String shouldn't be interned but is."
         );
+
+        assert!(
+            bytes == string.get_bytes(),
+            "String should have value `{:?}`, but instead has value `{:?}`",
+            bytes,
+            string
+        );
+    }
+
+    #[test]
+    fn from_byte_vec() {
+        let bytes_c = vec![1; 255];
+        let bytes = bytes_c.clone();
+
+        let string = RawJavaString::from_byte_vec(bytes_c);
 
         assert!(
             bytes == string.get_bytes(),

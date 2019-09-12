@@ -57,7 +57,7 @@ impl JavaString {
     /// Basic usage:
     ///
     /// ```
-    /// # use java_string::*;
+    /// # use jstring::*;
     /// let s = JavaString::new();
     /// ```
     pub const fn new() -> Self {
@@ -115,16 +115,18 @@ impl JavaString {
     /// // We know these bytes are valid, so we'll use `unwrap()`.
     /// let sparkle_heart = JavaString::from_utf8(sparkle_heart).unwrap();
     ///
-    /// assert_eq!("💖", sparkle_heart);
+    /// assert_eq!(sparkle_heart, "💖");
     /// ```
     ///
     /// Incorrect bytes:
     ///
     /// ```
+    /// # use jstring::JavaString;
+    ///
     /// // some invalid bytes, in a vector
     /// let sparkle_heart = vec![0, 159, 146, 150];
     ///
-    /// assert!(String::from_utf8(sparkle_heart).is_err());
+    /// assert!(JavaString::from_utf8(sparkle_heart).is_err());
     /// ```
     ///
     /// See the docs for `core::str::Utf8Error` for more details on what you can do
@@ -177,6 +179,28 @@ impl PartialOrd for JavaString {
     fn partial_cmp(&self, rhs: &Self) -> Option<core::cmp::Ordering> {
         let jstr: &str = &*self;
         jstr.partial_cmp(rhs)
+    }
+}
+
+impl<'a> PartialEq<str> for &'a JavaString {
+    fn eq(&self, rhs: &str) -> bool {
+        let jstr: &str = &*self;
+        jstr.eq(rhs)
+    }
+}
+
+impl<'a> PartialEq<&'a str> for JavaString {
+    fn eq(&self, rhs: &&'a str) -> bool {
+        let jstr: &str = &*self;
+        let jstr_2 = &jstr;
+        jstr_2.eq(rhs)
+    }
+}
+
+impl PartialEq<str> for JavaString {
+    fn eq(&self, rhs: &str) -> bool {
+        let jstr: &str = &*self;
+        jstr.eq(rhs)
     }
 }
 
