@@ -207,6 +207,14 @@ impl DerefMut for RawJavaString {
     }
 }
 
+impl PartialEq for RawJavaString {
+    fn eq(&self, other: &Self) -> bool {
+        &*self == &*other
+    }
+}
+
+impl Eq for RawJavaString {}
+
 #[cfg(test)]
 mod tests {
 
