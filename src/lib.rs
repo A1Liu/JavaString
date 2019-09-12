@@ -26,7 +26,6 @@ Here's how it works:
 */
 
 #![allow(dead_code)]
-// #![cfg_attr(not(any(test, docs)), no_std)]
 
 extern crate alloc;
 extern crate serde;
@@ -67,8 +66,8 @@ impl JavaString {
         }
     }
 
-    /// Creates a new empty `JavaString`. Included for API compatibility with standard
-    /// `String` implementation.
+    /// Included for API compatibility with standard `String` implementation.
+    /// Creates a new empty `JavaString`.
     ///
     /// # Examples
     ///
@@ -137,6 +136,13 @@ impl JavaString {
         let raw_str = RawJavaString::from_bytes(bytes);
         core::str::from_utf8(raw_str.get_bytes())?;
         Ok(Self { data: raw_str })
+    }
+
+    /// Included for API compatibility.
+    ///
+    /// Calls to the `String` member function of the same name.
+    pub fn from_utf8_lossy<'a>(v: &'a [u8]) -> alloc::borrow::Cow<'a, str> {
+        String::from_utf8_lossy(v)
     }
 }
 
