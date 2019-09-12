@@ -5,6 +5,9 @@ authors = ["Albert Liu <albertymliu@gmail.com>"]
 edition = "2018"
 license = "MIT"
 description = "JavaString uses short string optimizations and a lack of a 'capacity' field to reduce struct size and heap fragmentation in certain cases."
+repository = "https://github.com/A1Liu/jstring"
+keywords = ["immutable", "java", "string", "interned"]
+categories = ["data-structures"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
