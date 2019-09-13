@@ -146,6 +146,20 @@ impl JavaString {
     pub fn from_utf8_lossy<'a>(v: &'a [u8]) -> alloc::borrow::Cow<'a, str> {
         String::from_utf8_lossy(v)
     }
+
+    /// Decode a UTF-16 encoded vector `v` into a `JavaString`, returning `Err`
+    /// if `v` contains any invalid data.
+    ///
+    /// May cause memory leaks depending on how your allocator is configured.
+    pub fn from_utf16(v: &[u16]) -> Result<Self, alloc::string::FromUtf16Error> {
+        Ok(String::from_utf16(v)?.into())
+    }
+
+    /// Converts a vector of bytes to a `JavaString` without checking that the string
+    /// contains valid UTF-8.
+    pub unsafe fn from_utf8_unchecked(bytes: Vec<u8>) -> JavaString {
+        String::from_utf8_unchecked(bytes).into()
+    }
 }
 
 impl fmt::Display for JavaString {
@@ -172,6 +186,14 @@ impl Deref for JavaString {
 impl DerefMut for JavaString {
     fn deref_mut(&mut self) -> &mut str {
         unsafe { core::str::from_utf8_unchecked_mut(self.data.get_bytes_mut()) }
+    }
+}
+
+impl From<String> for JavaString {
+    fn from(string: String) -> Self {
+        Self {
+            data: RawJavaString::from_byte_vec(string.into_bytes()),
+        }
     }
 }
 
