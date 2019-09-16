@@ -23,6 +23,11 @@ Here's how it works:
    bitshift right.
 5. When interning, we have `std::mem::size_of::<usize>() * 2 - 1` bytes of space.
    On x64, this is 15 bytes, and on 32-bit architectures, this is 7 bytes.
+
+## API Compatibility and Acknoledgements
+The API of `JavaString` is 100% compatible with the standard `String`. Additionally,
+we use much of the same documentation, as it's really well written. We'd like to
+give credit to the documentation of standard `String`.
 */
 
 #![allow(dead_code)]
@@ -159,6 +164,13 @@ impl JavaString {
     /// contains valid UTF-8.
     pub unsafe fn from_utf8_unchecked(bytes: Vec<u8>) -> JavaString {
         String::from_utf8_unchecked(bytes).into()
+    }
+
+    /// Converts a `JavaString` into a byte vector.
+    ///
+    /// This consumes the `String`, so we do not need to copy its contents.
+    pub fn into_bytes(self) -> Vec<u8> {
+        self.data.into_bytes()
     }
 }
 

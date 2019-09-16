@@ -170,6 +170,12 @@ impl RawJavaString {
         new
     }
 
+    pub fn into_bytes(self) -> Vec<u8> {
+        let out = unsafe { Vec::from_raw_parts(self.data.as_ptr(), self.len(), self.len()) };
+        mem::forget(self);
+        out
+    }
+
     /// Overwrites what was previously in this buffer with the contents of bytes.
     ///
     /// Complexity is O(n) in the length of `bytes`.
