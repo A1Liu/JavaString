@@ -194,6 +194,27 @@ impl JavaString {
     pub fn capacity(&self) -> usize {
         self.len()
     }
+
+    /// Included for API compatibility with standard `String` implementation.
+    ///
+    /// Does nothing.
+    pub fn reserve(&mut self, _additional: usize) {}
+
+    /// Included for API compatibility with standard `String` implementation.
+    ///
+    /// Does nothing.
+    pub fn reserve_exact(&mut self, _additional: usize) {}
+
+    /// Included for API compatibility with standard `String` implementation.
+    ///
+    /// Does nothing.
+    #[cfg(nightly)]
+    pub fn try_reserve(
+        &mut self,
+        _additional: usize,
+    ) -> Result<(), std::collections::CollectionAllocErr> {
+        Ok(())
+    }
 }
 
 impl fmt::Display for JavaString {

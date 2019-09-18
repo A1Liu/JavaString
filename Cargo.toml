@@ -13,3 +13,8 @@ categories = ["data-structures"]
 
 [dependencies]
 serde = "1.0.100"
+
+[features]
+default = []
+nightly = []
+
