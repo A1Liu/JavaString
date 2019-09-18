@@ -215,6 +215,38 @@ impl JavaString {
     ) -> Result<(), std::collections::CollectionAllocErr> {
         Ok(())
     }
+
+    /// Included for API compatibility with standard `String` implementation.
+    ///
+    /// Does nothing.
+    #[cfg(nightly)]
+    pub fn try_reserve_exact(
+        &mut self,
+        additional: usize,
+    ) -> Result<(), std::collections::CollectionAllocErr> {
+        Ok(())
+    }
+
+    /// Included for API compatibility with standard `String` implementation.
+    ///
+    /// Does nothing.
+    pub fn shrink_to_fit(&mut self) {}
+
+    /// Included for API compatibility with standard `String` implementation.
+    ///
+    /// Does nothing.
+    pub fn shrink_to(&mut self, _min_capacity: usize) {}
+
+    /// Appends the given `char` to the end of this `JavaString`.
+    pub fn push(&mut self, ch: char) {
+        self.push_str(&ch.to_string())
+    }
+
+    /// Returns a byte slice of this `JavaString`'s contents.
+    /// The inverse of this method is `from_utf8`.
+    pub fn as_bytes(&self) -> &[u8] {
+        self.data.get_bytes()
+    }
 }
 
 impl fmt::Display for JavaString {
