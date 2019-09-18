@@ -172,6 +172,28 @@ impl JavaString {
     pub fn into_bytes(self) -> Vec<u8> {
         self.data.into_bytes()
     }
+
+    /// Extracts a string slice containing the entire `JavaString`.
+    pub fn as_str(&self) -> &str {
+        unsafe { core::str::from_utf8_unchecked(self.data.get_bytes()) }
+    }
+
+    /// Extracts a mutable string slice containing the entire `JavaString`.
+    pub fn as_mut_str(&mut self) -> &mut str {
+        unsafe { core::str::from_utf8_unchecked_mut(self.data.get_bytes_mut()) }
+    }
+
+    /// Appends a given string slice onto the end of this `JavaString`.
+    pub fn push_str(&mut self, string: &str) {
+        let sl = vec![self.as_bytes(), string.as_bytes()];
+        self.data = RawJavaString::from_bytes_array(sl);
+    }
+
+    /// Returns this `JavaString`'s capacity, in bytes. Always returns the
+    /// same value as `self.len()`.
+    pub fn capacity(&self) -> usize {
+        self.len()
+    }
 }
 
 impl fmt::Display for JavaString {
@@ -191,13 +213,13 @@ impl fmt::Debug for JavaString {
 impl Deref for JavaString {
     type Target = str;
     fn deref(&self) -> &str {
-        unsafe { core::str::from_utf8_unchecked(self.data.get_bytes()) }
+        self.as_str()
     }
 }
 
 impl DerefMut for JavaString {
     fn deref_mut(&mut self) -> &mut str {
-        unsafe { core::str::from_utf8_unchecked_mut(self.data.get_bytes_mut()) }
+        self.as_mut_str()
     }
 }
 
