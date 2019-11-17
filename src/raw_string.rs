@@ -162,8 +162,8 @@ impl RawJavaString {
 
         for bytes in bytes_list.iter() {
             unsafe {
-                core::ptr::copy_nonoverlapping(bytes.as_ptr(), write_location, len);
-                write_location = write_location.add(len);
+                core::ptr::copy_nonoverlapping(bytes.as_ptr(), write_location, bytes.len());
+                write_location = write_location.add(bytes.len());
             }
         }
 

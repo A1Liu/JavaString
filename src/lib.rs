@@ -184,8 +184,23 @@ impl JavaString {
     }
 
     /// Appends a given string slice onto the end of this `JavaString`.
+    ///
+    ///# Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use jstring::JavaString;
+    /// let mut s = JavaString::from("foo");
+    ///
+    /// s.push_str("bar");
+    /// assert_eq!(s, "foobar");
+    ///
+    /// s.push_str("foobar");
+    /// assert_eq!(s, "foobarfoobar");
+    /// ```
     pub fn push_str(&mut self, string: &str) {
-        let sl = vec![self.as_bytes(), string.as_bytes()];
+        let sl: &[_] = &[self.as_bytes(), string.as_bytes()];
         self.data = RawJavaString::from_bytes_array(sl);
     }
 
@@ -237,7 +252,22 @@ impl JavaString {
     /// Does nothing.
     pub fn shrink_to(&mut self, _min_capacity: usize) {}
 
-    /// Appends the given `char` to the end of this `JavaString`.
+    /// Appends the given `char` to the end of this `JavaString`. Unlike the
+    /// standard String version, this method has runtime that's linear with the
+    /// length of the string.
+    ///
+    ///# Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use jstring::JavaString;
+    /// let mut s = JavaString::from("foo");
+    ///
+    /// assert_eq!(s.pop(), Some('o'));
+    /// assert_eq!(s.pop(), Some('o'));
+    /// assert_eq!(s.pop(), Some('f'));
+    /// ```
     pub fn push(&mut self, ch: char) {
         self.push_str(&ch.to_string())
     }
@@ -246,6 +276,89 @@ impl JavaString {
     /// The inverse of this method is `from_utf8`.
     pub fn as_bytes(&self) -> &[u8] {
         self.data.get_bytes()
+    }
+
+    /// Shortens this String to the specified length. Unlike the standard String
+    /// version, this method has runtime that's linear with the length of the string.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use jstring::JavaString;
+    /// let mut s = JavaString::from("foo");
+    ///
+    /// s.push('b');
+    /// assert_eq!(s, "foob");
+    ///
+    /// s.push('a');
+    /// assert_eq!(s, "fooba");
+    ///
+    /// s.push('r');
+    /// assert_eq!(s, "foobar");
+    /// ```
+    pub fn truncate(&mut self, new_len: usize) {
+        self.data = RawJavaString::from_bytes(&self.as_bytes()[0..new_len]);
+    }
+
+    /// Removes the last character from the string buffer and returns it.
+    /// Returns `None` if this String is empty. Unlike the standard String version,
+    /// this method has runtime that's linear with the length of the string.
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use jstring::JavaString;
+    /// let mut s = JavaString::from("foo");
+    ///
+    /// assert_eq!(s.pop(), Some('o'));
+    /// assert_eq!(s.pop(), Some('o'));
+    /// assert_eq!(s.pop(), Some('f'));
+    /// ```
+    pub fn pop(&mut self) -> Option<char> {
+        let ch = self.chars().rev().next()?;
+        let newlen = self.len() - ch.len_utf8();
+        self.data = RawJavaString::from_bytes(&self.as_bytes()[0..newlen]);
+        Some(ch)
+    }
+
+    /// Removes a [`char`] from this `String` at a byte position and returns it.
+    ///
+    /// This is an `O(n)` operation, as it requires copying every element in the
+    /// buffer.
+    ///
+    /// # Panics
+    ///
+    /// Panics if `idx` is larger than or equal to the `String`'s length,
+    /// or if it does not lie on a [`char`] boundary.
+    ///
+    /// [`char`]: ../../std/primitive.char.html
+    ///
+    /// # Examples
+    ///
+    /// Basic usage:
+    ///
+    /// ```
+    /// # use jstring::JavaString;
+    /// let mut s = JavaString::from("foo");
+    ///
+    /// assert_eq!(s.remove(0), 'f');
+    /// assert_eq!(s.remove(1), 'o');
+    /// assert_eq!(s.remove(0), 'o');
+    /// ```
+    pub fn remove(&mut self, idx: usize) -> char {
+        let ch = match self[idx..].chars().next() {
+            Some(ch) => ch,
+            None => panic!("cannot remove a char from the end of a string"),
+        };
+
+        let next = idx + ch.len_utf8();
+        let bytes_array: &[&[u8]] = &[&self.as_bytes()[0..idx], &self.as_bytes()[next..]];
+        self.data = RawJavaString::from_bytes_array(bytes_array);
+        ch
     }
 }
 
@@ -280,6 +393,14 @@ impl From<String> for JavaString {
     fn from(string: String) -> Self {
         Self {
             data: RawJavaString::from_byte_vec(string.into_bytes()),
+        }
+    }
+}
+
+impl<'a> From<&'a str> for JavaString {
+    fn from(string: &'a str) -> Self {
+        Self {
+            data: RawJavaString::from_bytes(string.as_bytes()),
         }
     }
 }
